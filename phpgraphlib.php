@@ -302,11 +302,8 @@ class PHPGraphLib {
 				if ($this->bool_user_data_range) {
 					if ($this->bool_logarithmic) {
 						$range = $this->data_max - $this->data_min;
-						error_log (" range $range");
 						$this->data_range_max = $this->data_max+$range*0.02;
 						$this->data_range_min = $this->data_min-$range*0.02;
-						$range = $this->data_range_max - $this->data_range_min;
-						error_log (" RANGE $range");
 					}
 					//if all zero data, set fake max and min to range boundaries
 					if ($this->all_zero_data) {
@@ -402,11 +399,9 @@ class PHPGraphLib {
 						//don't display, we are out of our allowed display range!
 						$y1 = $y2;
 						$hideBarOutline = true;
-						error_log (" TOO LOW $item ");
 					} elseif ($item >= $this->data_range_max) {
 						//display, but cut off display above range max
 						$y1 = $this->x_axis_y1 - ($this->actual_displayed_max_value * $this->unit_scale) + $adjustment;	
-						error_log (" TOO HIGH $item ");
 					}
 				}	
 				//draw bar 
@@ -735,7 +730,6 @@ class PHPGraphLib {
 		$max = $this->data_max;
 		$pmin = pow (10, $min);
 		$pmax = pow (10, $max);
-		error_log ( " From $min $pmin to $max $pmax");
 		$sample_cnt = 0;
 		$loop_cnt = 0;
 		$done_after = 0;
@@ -746,7 +740,7 @@ class PHPGraphLib {
 			if ($loop_cnt == 0) {
 				$sample = 1;
 			} else if ($loop_cnt == 1) {
-				if ($sample_cnt < 5) {
+				if ($sample_cnt < 3) {
 					$sample = 2;
 				} else {
 					$sample = 3;
@@ -760,7 +754,6 @@ class PHPGraphLib {
 			while ($sample > $pmin) $sample /= 10;
 			while ($sample < $pmin) $sample *= 10;
 			while ($sample < $pmax) {
-				error_log ("setter inn $sample ");
 				$horizGridArray[] = log10 ($sample);
 				$sample *= 10;
 				$sample_cnt++;
@@ -784,9 +777,7 @@ class PHPGraphLib {
 			}
 			//display value on y axis if desired using calc'd grid values
 			if ($this->bool_y_axis_values) {
-				error_log(" was $value");
 				$value = pow(10, $value);
-				error_log(" then $value");
 				$cnt = 0;
 				$big = 0;
 				if ($value > 5000) {
@@ -806,7 +797,7 @@ class PHPGraphLib {
 				if ($big) $fact = 10;
 				while ($cnt--) $value *= $fact;
 				$value = strval($value);
-				error_log(" last $value -- ");
+
 				$adjustedYValue = $yValue - (self::TEXT_HEIGHT / 2);
 				$adjustedXValue = $this->y_axis_x1 - ((strlen($value) + $this->data_additional_length) * self::TEXT_WIDTH) - self::AXIS_VALUE_PADDING;
 
@@ -1052,7 +1043,6 @@ class PHPGraphLib {
 
 	public function addData($data, $data2 = '', $data3 = '', $data4 = '', $data5 = '') 
 	{
-		error_log ("=============== Log $this->bool_logarithmic  =================================");
 		$data_sets = array($data, $data2, $data3, $data4, $data5);
 
 		foreach ($data_sets as $set) {
@@ -1089,10 +1079,8 @@ class PHPGraphLib {
 				}
 				if ($item < $this->data_min) { 
 					$this->data_min = $item;
-					error_log (" LOW $item");
 				}
 				if ($item > $this->data_max) { 
-					error_log (" HIGH $item");
 					$this->data_max = $item;
 				}
 			}
