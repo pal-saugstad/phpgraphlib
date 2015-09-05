@@ -94,6 +94,7 @@ class PHPGraphLib {
 	protected $bool_title_center = true;
 	protected $bool_background = false;
 	protected $bool_title = false;
+	protected $bool_logarithmic = false;
 	protected $bool_ignore_data_fit_errors = false;
 	protected $data_point_width = 6;
 	protected $x_axis_value_interval = false;
@@ -299,6 +300,14 @@ class PHPGraphLib {
 				//error scale units too small, x axis margin too big or graph height not tall enough
 			} else {
 				if ($this->bool_user_data_range) {
+					if ($this->bool_logarithmic) {
+						$range = $this->data_max - $this->data_min;
+						error_log (" range $range");
+						$this->data_range_max = $this->data_max+$range*0.02;
+						$this->data_range_min = $this->data_min-$range*0.02;
+						$range = $this->data_range_max - $this->data_range_min;
+						error_log (" RANGE $range");
+					}
 					//if all zero data, set fake max and min to range boundaries
 					if ($this->all_zero_data) {
 						if ($this->data_range_min > $this->data_min) { 
@@ -393,9 +402,11 @@ class PHPGraphLib {
 						//don't display, we are out of our allowed display range!
 						$y1 = $y2;
 						$hideBarOutline = true;
+						error_log (" TOO LOW $item ");
 					} elseif ($item >= $this->data_range_max) {
 						//display, but cut off display above range max
 						$y1 = $this->x_axis_y1 - ($this->actual_displayed_max_value * $this->unit_scale) + $adjustment;	
+						error_log (" TOO HIGH $item ");
 					}
 				}	
 				//draw bar 
@@ -643,7 +654,11 @@ class PHPGraphLib {
 			$adjustment = $this->data_min * $this->unit_scale;
 		}
 
-		$this->calculateGridHoriz($adjustment);
+		if ($this->bool_logarithmic) {
+			$this->calculateGridHorizLogarithmic();
+		} else {
+			$this->calculateGridHoriz($adjustment);
+		}
 		$this->calculateGridVert();
 		$this->generateGrids();
 		$this->generateGoalLines($adjustment);
@@ -702,6 +717,103 @@ class PHPGraphLib {
 				//imagestring($this->image, 2, $adjustedXValue, $adjustedYValue, $value, $this->y_axis_text_color);
 				$this->horiz_grid_values[] = array('size' => 2, 'x' => $adjustedXValue, 'y' => $adjustedYValue,
 					'value' => $value, 'color' => $this->y_axis_text_color);
+			}
+		}
+		if (!$this->bool_all_positive && !$this->bool_user_data_range) {
+			//reset with better value based on grid min value calculations, not data min
+			$this->y_axis_y1 = $this->x_axis_y1 - ($horizGridArray[0] * $this->unit_scale);
+		}
+		//reset with better value based on grid value calculations, not data min
+		$this->y_axis_y2 = $yValue;
+	}
+
+	protected function calculateGridHorizLogarithmic() 
+	{
+		//determine horizontal grid lines
+		$horizGridArray = array();
+		$min = $this->data_min;
+		$max = $this->data_max;
+		$pmin = pow (10, $min);
+		$pmax = pow (10, $max);
+		error_log ( " From $min $pmin to $max $pmax");
+		$sample_cnt = 0;
+		$loop_cnt = 0;
+		$done_after = 0;
+		$adjustment = $this->data_min * $this->unit_scale;
+		$horizGridArray[] = $min;
+		$horizGridArray[] = $max;
+		while ($sample_cnt < 10) {
+			if ($loop_cnt == 0) {
+				$sample = 1;
+			} else if ($loop_cnt == 1) {
+				if ($sample_cnt < 5) {
+					$sample = 2;
+				} else {
+					$sample = 3;
+					$done_after = 1;
+				}
+			} else {
+				$sample = 5;
+				$done_after = 1;
+			}
+			
+			while ($sample > $pmin) $sample /= 10;
+			while ($sample < $pmin) $sample *= 10;
+			while ($sample < $pmax) {
+				error_log ("setter inn $sample ");
+				$horizGridArray[] = log10 ($sample);
+				$sample *= 10;
+				$sample_cnt++;
+			}
+			$loop_cnt++;
+			if ($done_after) break;
+		}
+
+		//sort needed b/c we will use last value later (max)
+		sort($horizGridArray);
+		$this->actual_displayed_max_value = $horizGridArray[count($horizGridArray) - 1];
+		$this->actual_displayed_min_value = $horizGridArray[0];	
+
+		//loop through each horizontal line
+		foreach ($horizGridArray as $value) {
+			$yValue = round($this->x_axis_y1 - ($value * $this->unit_scale) + $adjustment);
+			if ($this->bool_grid) {
+				//imageline($this->image, $this->y_axis_x1, $yValue, $this->x_axis_x2 , $yValue, $this->grid_color);
+				$this->horiz_grid_lines[] = array('x1' => $this->y_axis_x1, 'y1' => $yValue, 
+					'x2' => $this->x_axis_x2, 'y2' => $yValue, 'color' => $this->grid_color);
+			}
+			//display value on y axis if desired using calc'd grid values
+			if ($this->bool_y_axis_values) {
+				error_log(" was $value");
+				$value = pow(10, $value);
+				error_log(" then $value");
+				$cnt = 0;
+				$big = 0;
+				if ($value > 5000) {
+					$big = 1;
+					while ($value > 40000) {
+						$value /= 10;
+						$cnt++;
+					}
+				} else {
+					while ($value < 1000) {
+						$value *= 10;
+						$cnt++;
+					}
+				}
+				$value = round ($value);
+				$fact = 0.1;
+				if ($big) $fact = 10;
+				while ($cnt--) $value *= $fact;
+				$value = strval($value);
+				error_log(" last $value -- ");
+				$adjustedYValue = $yValue - (self::TEXT_HEIGHT / 2);
+				$adjustedXValue = $this->y_axis_x1 - ((strlen($value) + $this->data_additional_length) * self::TEXT_WIDTH) - self::AXIS_VALUE_PADDING;
+
+
+				//imagestring($this->image, 2, $adjustedXValue, $adjustedYValue, $value, $this->y_axis_text_color);
+				$this->horiz_grid_values[] = array('size' => 2, 'x' => $adjustedXValue, 'y' => $adjustedYValue,
+					'value' =>  $value, 'color' => $this->y_axis_text_color);
 			}
 		}
 		if (!$this->bool_all_positive && !$this->bool_user_data_range) {
@@ -940,10 +1052,14 @@ class PHPGraphLib {
 
 	public function addData($data, $data2 = '', $data3 = '', $data4 = '', $data5 = '') 
 	{
+		error_log ("=============== Log $this->bool_logarithmic  =================================");
 		$data_sets = array($data, $data2, $data3, $data4, $data5);
 
 		foreach ($data_sets as $set) {
 			if (is_array($set)) {
+				if ($this->bool_logarithmic) {
+					foreach ($set as $key => $value) $set[$key] = log10($value);
+				}
 				$this->data_array[] = $set;
 			}
 		}
@@ -957,6 +1073,8 @@ class PHPGraphLib {
 				if ($force_set_x) {
 					$low_x = $key;
 					$high_x = $key;
+					$this->data_min = $item;
+					$this->data_max = $item;
 					$force_set_x = 0;
 				}
 				if ($key < $low_x) {
@@ -971,9 +1089,11 @@ class PHPGraphLib {
 				}
 				if ($item < $this->data_min) { 
 					$this->data_min = $item;
+					error_log (" LOW $item");
 				}
 				if ($item > $this->data_max) { 
-					$this->data_max = $item; 
+					error_log (" HIGH $item");
+					$this->data_max = $item;
 				}
 			}
 			//find the count of the dataset with the most data points
@@ -1074,6 +1194,12 @@ class PHPGraphLib {
 		} else { 
 			$this->error[] = "String arg for setTitle() not specified properly."; 
 		}	
+	}
+
+	public function setLogarithmic($bool) 
+	{
+		$this->bool_logarithmic = $bool;
+		$this->bool_user_data_range = $bool;
 	}
 
 	public function setTitleLocation($location) 
