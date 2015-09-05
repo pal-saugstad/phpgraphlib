@@ -780,14 +780,14 @@ class PHPGraphLib {
 				$value = pow(10, $value);
 				$cnt = 0;
 				$big = 0;
-				if ($value > 5000) {
+				if ($value > 500) {
 					$big = 1;
-					while ($value > 40000) {
+					while ($value > 4000) {
 						$value /= 10;
 						$cnt++;
 					}
 				} else {
-					while ($value < 1000) {
+					while ($value < 100) {
 						$value *= 10;
 						$cnt++;
 					}
@@ -921,6 +921,9 @@ class PHPGraphLib {
 			$this->title_y = $textVertPos;
 		}
 		imagestring($this->image, 2, $title_x , $title_y , $this->title_text,  $this->title_color);
+		if ($this->bool_logarithmic) {
+			imagestringup($this->image, 2, 1 , 330 , 'Logarithmic',  $this->title_color);
+		}
 	}
 
 	protected function calcTopMargin() 
