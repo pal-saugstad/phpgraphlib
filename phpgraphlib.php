@@ -1583,9 +1583,10 @@ class PHPGraphLib {
 		$this->setGenericColor($color, '$this->data_value_color', "Data value color not specified properly.");
 	}
 
-	public function setLineColor($color1, $color2 = '', $color3 = '', $color4 = '', $color5 = '')
+	public function setLineColor($color1, $color2 = '', $color3 = '', $color4 = '', $color5 = '',
+	                             $color6 = '', $color7 = '', $color8 = '', $color9 = '', $color10 = '')
 	{
-		$line_colors = array($color1, $color2, $color3, $color4, $color5);
+		$line_colors = array($color1, $color2, $color3, $color4, $color5, $color6, $color7, $color8, $color9, $color10);
 		foreach ($line_colors as $key => $color) {
 			if ($color) {
 				$this->setGenericColor($color, '$this->line_color[]', "Line color " . ($key + 1) . " not specified properly.");
