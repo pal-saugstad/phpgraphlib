@@ -650,7 +650,7 @@ class PHPGraphLib {
 		}
 
 		if ($this->bool_logarithmic) {
-			$this->calculateGridHorizLogarithmic();
+			$this->calculateGridHorizLogarithmic($adjustment);
 		} else {
 			$this->calculateGridHoriz($adjustment);
 		}
@@ -722,7 +722,7 @@ class PHPGraphLib {
 		$this->y_axis_y2 = $yValue;
 	}
 
-	protected function calculateGridHorizLogarithmic() 
+	protected function calculateGridHorizLogarithmic($adjustment = 0)
 	{
 		//determine horizontal grid lines
 		$horizGridArray = array();
